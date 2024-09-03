@@ -8,9 +8,6 @@
 #pragma config FEXTOSC = OFF    // External Oscillator mode selection bits (Oscillator not enabled)
 #pragma config RSTOSC = HFINT1  // Power-up default value for COSC bits (HFINTOSC with HFFRQ = 1 MHz and CDIV = 1:1)
 #pragma config WDTE = OFF       // WDT operating mode (WDT Disabled)
-// ????? ???????
-//#define CLK LATAbits.LATA0
-//#define DIO LATAbits.LATA1
 
 
 
@@ -57,7 +54,22 @@ uint8_t getDigits(uint16_t number);   //Extracts decimal digits from integer, po
      // ????? ???? ????? ?????
     int value = 0;
       
-    
+
+void PWM_Init(void) {
+     TRISA = 0b111111; // Port All input
+    TRISC = 0b110000; // RC0-RC3 output
+    ANSELA = 0; // all digital
+    ANSELC = 0; // all digital
+    WPUA5 = 1; // RA5 weakly pulled up
+    RC3PPS = 2;
+//------------ Initialize PWM ----------------------------------
+    T2CON = 0b00000100; // Timer 2 PS1/1 setting
+    PR2 = 0xFF; // Timer2 Period Register setting
+    PWM5CON= 0b11000000; // Positive logic output
+    PWM5DCH= 0x80; // Set duty cycle
+}
+
+
 
 
 void main(void)
@@ -69,14 +81,23 @@ void main(void)
 
   getDigits(displayedInt);
   tm1637UpdateDisplay();
+  
+    // ????? ????? PWM
+    unsigned int dutyCycle = 127;  // ????? ????? Duty Cycle (50%)
+    
+    PWM_Init();
+    
   while(1)
     {
-     // displayedInt ++;
+    
         // ????? ???? ?????? 
               if (RA5 == 0) {
             __delay_ms(20);  // ????? ???? ??????? ?? ????
             if (RA5 == 0) {
-                displayedInt++;  // ?????? ?????
+               displayedInt++;
+                 if (displayedInt < 1023) displayedInt++;  // ?????? ????? PWM
+               PWM5DCH = displayedInt;
+  
                 while (RA5 == 0);  // ?????? ???? ??? ??? ????
             }
               }
@@ -84,7 +105,8 @@ void main(void)
         if (RA4 == 0) {
             __delay_ms(20);  // ????? ???? ??????? ?? ????
             if (RA4 == 0) {
-                displayedInt--;  // ???? ?????
+              if (displayedInt > 0) displayedInt--;  // ?????? ????? PWM
+               PWM5DCH = displayedInt;
                 while (RA4 == 0);  // ?????? ???? ??? ??? ????
             }
         } 
@@ -92,7 +114,7 @@ void main(void)
             displayedInt = 0;
       if (getDigits(displayedInt))
       { 
-        //__delay_ms(100);
+
         tm1637UpdateDisplay();
       }
     }
@@ -270,6 +292,9 @@ void initialise()
     tm1637_dio_tris = 0;
     tm1637_clk_tris = 0;
     ANSELA = 0;  // ????? ??????? ?? ????? ???????
+     ANSELC = 0;
+      LATC = 0;
+         TRISC = 0b000000;
     CM1CON0 = 0x00;  // ??????? ???? ???????????
     CM2CON0 = 0x00;
  
