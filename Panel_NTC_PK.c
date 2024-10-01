@@ -1,4 +1,6 @@
 //----PIC16F18324----//
+//---Pin A2 Input ADC ----//
+//---Pin C0 , C5 Out Relay ----//
 #include <xc.h>
 #include <stdint.h>
 
