@@ -1,8 +1,9 @@
 
+
 #include <xc.h>
 #include <stdint.h>
 
-#define _XTAL_FREQ 4000000
+#define _XTAL_FREQ 1000000
 
 // Configuration bits
 #pragma config FEXTOSC = OFF    // External Oscillator mode selection bits (Oscillator not enabled)
@@ -11,17 +12,17 @@
 
 
 
-#define tm1637_dio_pin LATAbits.LATA1
-#define tm1637_clk_pin LATAbits.LATA0
-#define tm1637_dio_tris TRISAbits.TRISA1
-#define tm1637_clk_tris TRISAbits.TRISA0
+#define tm1637_dio_pin LATAbits.LATA2
+#define tm1637_clk_pin LATCbits.LATC0
+#define tm1637_dio_tris TRISAbits.TRISA2
+#define tm1637_clk_tris TRISCbits.TRISC0
 
 
 // Set the TM1637 module data and clock pins:
 #define trisConfiguration 0b00110000; // This config ONLY TM1637 GP4/5 pins are inputs, TM1637 module pullups will take high
-#define tm1637dio TRISAbits.TRISA1                 // Set the i/o ports names for TM1637 data and clock here
+#define tm1637dio TRISAbits.TRISA2                 // Set the i/o ports names for TM1637 data and clock here
 #define tm1637dioTrisBit 1            // This is the bit shift to set TRIS for GP4
-#define tm1637clk TRISAbits.TRISA0
+#define tm1637clk TRISCbits.TRISC0
 #define tm1637clkTrisBit 0
 
 //Variables:
@@ -30,7 +31,7 @@ const uint8_t tm1637ByteSetData = 0x40;        // 0x40 [01000000] = Indicate com
 const uint8_t tm1637ByteSetAddr = 0xC0;        // 0xC0 [11000000] = Start address write out all display bytes 
 const uint8_t tm1637ByteSetOn = 0x88;          // 0x88 [10001000] = Display ON, plus brightness
 const uint8_t tm1637ByteSetOff = 0x80;         // 0x80 [10000000] = Display OFF 
-const uint8_t tm1637MaxDigits = 4;
+const uint8_t tm1637MaxDigits = 2;
 const uint8_t tm1637RightDigit = tm1637MaxDigits - 1;
                                                // Used to output the segment data for numbers 0..9 :
 const uint8_t tm1637DisplayNumtoSeg[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
@@ -53,7 +54,14 @@ uint8_t getDigits(uint16_t number);   //Extracts decimal digits from integer, po
     
      // ????? ???? ????? ?????
     int value = 0;
-      
+  
+    #define BTN1 PORTAbits.RA4
+#define BTN2 PORTAbits.RA5
+
+unsigned int pwm_value = 0 ; 
+
+uint16_t displayedInt=0;  //Beware 65K limit if larger than 4 digit display,consider using uint32_t
+    
 
 void PWM_Init(void) {
      TRISA = 0b111111; // Port All input
@@ -70,13 +78,87 @@ void PWM_Init(void) {
 }
 
 
+void setupOscillator(void) {
+    // تنظیم رجیستر OSCCON برای 8 مگاهرتز
+OSCCON1bits.NOSC = 0b000; // انتخاب کلاک داخلی HFINTOSC
+OSCCON1bits.NDIV = 0b010;
+    OSCCON1bits.NDIV = 0b0000; // بدون تقسیم فرکانس
+   // OSCENbits.EXTOEN = 1; // فعال کردن کریستال خارجی (در صورت نیاز)
+   // OSCFRQbits.HFFRQ = 0b100; // تنظیم فرکانس به 8 مگاهرتز
 
+}
+void __interrupt() ISR() {
+    
+    
+    if (TMR1IF) {
+        TMR1IF = 0;
+        TMR1 = 0;
+         
+  
+          LATCbits.LATC2 = ~LATCbits.LATC2;      
+       
+        
+        if (!BTN1) {
+            // تغییر سریع PWM برای دکمه 1
+            pwm_value += 1; // مقدار دلخواه
+            //set_pwm(pwm_value);
+             PWM5DCH = pwm_value ;
+              displayedInt =    pwm_value;
+               if (getDigits(displayedInt))
+      { 
+
+        tm1637UpdateDisplay();
+      }
+        }
+        
+        else if (!BTN2) {
+            // تغییر سریع PWM برای دکمه 2
+            pwm_value -= 1; // مقدار دلخواه
+           // set_pwm(pwm_value);
+            PWM5DCH = pwm_value ;
+                       displayedInt =    pwm_value;
+               if (getDigits(displayedInt))
+      { 
+
+        tm1637UpdateDisplay();
+      }
+        
+            
+    }
+}
+}
 
 void main(void)
 {
-  uint16_t displayedInt=0;  //Beware 65K limit if larger than 4 digit display,consider using uint32_t
+    //setupOscillator();
+    
+        T1CON = 0x61; // تنظیمات تایمر1
+    TMR1 = 0;
+    TMR1IF = 0;
+    TMR1IE = 1;
+    PEIE = 1;
+    GIE = 1;
+   
+    
+    
+
+    
+    
+
+
+
+    int btn1Counter = 0;
+    int btn2Counter = 0;
+    
+  
   uint16_t ctr = 0;
   initialise();
+  
+        ANSELAbits.ANSA0 = 0;
+     TRISAbits.TRISA0 = 0;
+     
+           ANSELAbits.ANSA1 = 0;
+     TRISAbits.TRISA1 = 0;
   __delay_ms(100);
 
   getDigits(displayedInt);
@@ -86,30 +168,88 @@ void main(void)
     unsigned int dutyCycle = 127;  // ????? ????? Duty Cycle (50%)
     
     PWM_Init();
-    
+ 
+     //PEIE = 0;
+               // GIE = 0;
+   // T1CONbits.TMR1ON = 1;
   while(1)
     {
-    
-        // ????? ???? ?????? 
-              if (RA5 == 0) {
-            __delay_ms(20);  // ????? ???? ??????? ?? ????
-            if (RA5 == 0) {
-               displayedInt++;
-                 if (displayedInt < 1023) displayedInt++;  // ?????? ????? PWM
-               PWM5DCH = displayedInt;
-  
-                while (RA5 == 0);  // ?????? ???? ??? ??? ????
+//      while(1)
+//      {
+//         __delay_ms(100); 
+//          LATCbits.LATC2 = ~LATCbits.LATC2;
+//      }
+      
+      
+              if (!BTN1) {
+                             __delay_ms(700);
+                             btn1Counter++;
+                             if (btn1Counter > 3) {
+                                                    T1CONbits.TMR1ON = 1; // شروع تایمر1 برای تغییر سریع PWM
+            
+                                                  } else {
+                                                          // تغییر عادی PWM برای دکمه 1
+                                                          pwm_value += 1; // مقدار دلخواه
+                                                          //set_pwm(pwm_value);
+                                                          PWM5DCH = pwm_value ;
+                                                          }
+             //while (BTN1 == 0); 
+                        } else {
+                                 btn1Counter = 0;
+                                 //T1CONbits.TMR1ON = 0; // توقف تایمر1
+        
+                               }
+              
+               if (!BTN2) {
+            __delay_ms(700);
+            btn2Counter++;
+            if (btn2Counter > 3) {
+                T1CONbits.TMR1ON = 1; // شروع تایمر1 برای تغییر سریع PWM
+         
+            } else {
+                // تغییر عادی PWM برای دکمه 1
+                pwm_value -= 1; // مقدار دلخواه
+                //set_pwm(pwm_value);
+                PWM5DCH = pwm_value ;
             }
+             //while (BTN1 == 0); 
+        } else {
+            btn2Counter = 0;
+            //T1CONbits.TMR1ON = 0; // توقف تایمر1
+        
+        }
+              
+              
+              if(BTN1 && BTN2)
+                  
+              {
+                 T1CONbits.TMR1ON = 0; // توقف تایمر1  
               }
-            // ????? ???? ????
-        if (RA4 == 0) {
-            __delay_ms(20);  // ????? ???? ??????? ?? ????
-            if (RA4 == 0) {
-              if (displayedInt > 0) displayedInt--;  // ?????? ????? PWM
-               PWM5DCH = displayedInt;
-                while (RA4 == 0);  // ?????? ???? ??? ??? ????
-            }
-        } 
+              
+              
+              
+              
+//        // ????? ???? ?????? 
+//              if (RA5 == 0) {
+//            __delay_ms(20);  // ????? ???? ??????? ?? ????
+//            if (RA5 == 0) {
+//               displayedInt++;
+//                 if (displayedInt < 1023) displayedInt++;  // ?????? ????? PWM
+//               PWM5DCH = displayedInt;
+//  
+//                while (RA5 == 0);  // ?????? ???? ??? ??? ????
+//            }
+//              }
+//            // ????? ???? ????
+//        if (RA4 == 0) {
+//            __delay_ms(20);  // ????? ???? ??????? ?? ????
+//            if (RA4 == 0) {
+//              if (displayedInt > 0) displayedInt--;  // ?????? ????? PWM
+//               PWM5DCH = displayedInt;
+//                while (RA4 == 0);  // ?????? ???? ??? ??? ????
+//            }
+//        } 
+           displayedInt =    pwm_value;
       if (displayedInt>9999)
             displayedInt = 0;
       if (getDigits(displayedInt))
@@ -117,8 +257,8 @@ void main(void)
 
         tm1637UpdateDisplay();
       }
-    }
-}
+    } //while
+} // main
 
 /*********************************************************************************************
  tm1637UpdateDisplay()
