@@ -191,7 +191,7 @@ void main(void) {
 
               Flag_50h = 0 ;
               count_7ms = 0 ;
-      __delay_ms(1000);
+     // __delay_ms(1000);
      Start_Power();
      Flag_V_Reg =  1 ;
     while(1) {
@@ -243,12 +243,13 @@ void main(void) {
         
          if(V_Reg_PIN == 0  && Flag_V_Reg == 1)
          {
-           
+            // __delay_ms(10);
              Flag_V_Reg = 0 ;
              Start_Power();
          }
            if(V_Reg_PIN == 1 && Flag_50h == 1  )
                             {
+               Flag_V_Reg = 0 ;
                  count_7ms ++ ;
               
                                if(count_7ms == 100)
