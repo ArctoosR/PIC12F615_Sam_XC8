@@ -1,0 +1,193 @@
+/**
+  Generated Main Source File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    main.c
+
+  Summary:
+    This is the main file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
+
+  Description:
+    This header file provides implementations for driver APIs for all modules selected in the GUI.
+    Generation Information :
+        Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.81.8
+        Device            :  PIC16F1829
+        Driver Version    :  2.00
+*/
+
+/*
+    (c) 2018 Microchip Technology Inc. and its subsidiaries. 
+    
+    Subject to your compliance with these terms, you may use Microchip software and any 
+    derivatives exclusively with Microchip products. It is your responsibility to comply with third party 
+    license terms applicable to your use of third party software (including open source software) that 
+    may accompany Microchip software.
+    
+    THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER 
+    EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY 
+    IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS 
+    FOR A PARTICULAR PURPOSE.
+    
+    IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, 
+    INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND 
+    WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP 
+    HAS BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO 
+    THE FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL 
+    CLAIMS IN ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT 
+    OF FEES, IF ANY, THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS 
+    SOFTWARE.
+*/
+
+#include "mcc_generated_files/mcc.h"
+#include <stdio.h> // ???? ??????? ?? sprintf
+ uint16_t  ADC = 0 ;
+   uint16_t dig = 0 ;
+   
+   unsigned int adc_value = 0;
+unsigned int display_index = 0;
+unsigned int DP_IND = 0; 
+
+void ISR_Mado(void);
+ void USART_Write_Text(char* text) { 
+     while(*text) {
+         EUSART_Write(*text++); 
+     } 
+ }
+ 
+ 
+ 
+ void display7Segment(unsigned int value, unsigned int digit) {
+    switch(value) {
+        case 0: PORTC = 0b11000000; break; // ????? 0
+        case 1: PORTC = 0b01111001; break; // ????? 1
+        case 2: PORTC = 0b00100100; break; // ????? 2 
+        case 3: PORTC = 0b00110000; break; // ????? 3 
+        case 4: PORTC = 0b00011001; break; // ????? 4 
+        case 5: PORTC = 0b00010010; break; // ????? 5 
+        case 6: PORTC = 0b00000010; break; // ????? 6  
+        case 7: PORTC = 0b01111000; break; // ????? 7
+        case 8: PORTC = 0b00000000; break; // ????? 8
+        case 9: PORTC = 0b00010000; break; // ????? 9 
+        default: PORTC = 0b01111111; break; // ???
+    }
+    if (digit) {
+        //PORTB = 0b00100000;
+        PORTBbits.RB6 = 0;
+       // LATBbits.LATB6 = 0 ;
+        PORTBbits.RB5 = 1; 
+       // LATBbits.LATB5 = 1 ;
+    } else {
+        //PORTB = 0b01000000;
+        PORTBbits.RB6 = 1; 
+        //LATBbits.LATB6 = 1 ;
+                
+        PORTBbits.RB5 = 0;  
+        //LATBbits.LATB5 = 0 ;
+    }
+}
+ 
+void DELAY_milliseconds(uint16_t);
+
+/*
+                         Main application
+ */
+void main(void)
+{
+    // initialize the device
+    SYSTEM_Initialize();
+    
+
+    
+    TMR1_SetInterruptHandler (ISR_Mado);
+   // TMR1_StartTimer();
+    
+        // Enable the Global Interrupts
+    INTERRUPT_GlobalInterruptEnable();
+
+// Enable the Peripheral Interrupts
+    INTERRUPT_PeripheralInterruptEnable();
+
+    // When using interrupts, you need to set the Global and Peripheral Interrupt Enable bits
+    // Use the following macros to:
+
+    // Enable the Global Interrupts
+    //INTERRUPT_GlobalInterruptEnable();
+
+    // Enable the Peripheral Interrupts
+    //INTERRUPT_PeripheralInterruptEnable();
+
+    // Disable the Global Interrupts
+    //INTERRUPT_GlobalInterruptDisable();
+
+    // Disable the Peripheral Interrupts
+    //INTERRUPT_PeripheralInterruptDisable();
+   
+    ADC_SelectChannel(channel_AN3);
+    ADC_StartConversion();
+  
+            
+    while (1)
+    {
+        // LATAbits.LATA2 = ~LATAbits.LATA2 ;
+       // LATBbits.LATB6 = !LATBbits.LATB6;
+          //LATBbits.LATB5 = !LATBbits.LATB5;
+        // Add your application codeS
+         while(!ADC_IsConversionDone())
+    {
+        ;
+    }
+        ADC = ADC_GetConversion(channel_AN3);
+        char buffer[10]; 
+        sprintf(buffer, "ADC: %u\r\n", ADC); // ??????? ?? sprintf ???? ???? ???? ???? 
+        USART_Write_Text(buffer);
+        adc_value = (ADC / 12) ; 
+        if(adc_value > 5 )
+        {
+            PWM3_LoadDutyValue(adc_value * 8  );
+        }
+        else 
+        {
+              PWM3_LoadDutyValue(5 );
+        }
+      
+         //EUSART_Write(buffer);
+       // EUSART_Write(0x0A);
+        DELAY_milliseconds(500);
+    }
+}
+
+
+void ISR_Mado(void)
+ {
+    // TMR1_ISR();
+       //LATBbits.LATB6 = !LATBbits.LATB6;
+       // LATBbits.LATB5 = !LATBbits.LATB5;
+            
+            //Unhandled Interrupt
+                 // TMR1 = 62000 ; //  65535 - (_XTAL_FREQ / (4 * 1000)); // ????? ?????1 ???? ????? ???? ?? 1 ??????????
+
+                  TMR1_WriteTimer(62000);
+                          
+        // ?????? ???? ??????? ??? ?????
+        unsigned int tens = adc_value / 10;
+        unsigned int ones = adc_value - (tens * 10);
+
+        if (DP_IND == 0) {
+           // LATBbits.LATB5 = 0;
+            DP_IND = 1;
+           
+            display7Segment(tens, 1); // ????? ????
+        } else {
+          // LATBbits.LATB5 = 1;
+            DP_IND = 0;
+            display7Segment(ones, 0); // ????? ?????
+        }  
+            
+          
+ }
+/**
+ End of File
+*/
