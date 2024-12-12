@@ -132,6 +132,20 @@ void __interrupt() ISR(void) {
 }
 
 
+void End_Power(void)
+{
+                  En_598_PIN = 0 ; 
+                  En_598_PIN = 1 ; 
+              __delay_ms(200);
+               En_598_PIN = 0 ; 
+               Start_PIN = 1 ; 
+             //  __delay_ms(20) ;
+             //  En_598_PIN = 0 ; 
+            
+               __delay_ms(120);
+                 Start_PIN = 0 ; 
+               __delay_ms(500);
+}
 void Start_Power(void)
 {
                   En_598_PIN = 0 ; 
@@ -139,8 +153,11 @@ void Start_Power(void)
               __delay_ms(200);
                En_598_PIN = 0 ; 
                Start_PIN = 1 ; 
-              __delay_ms(120);
-              Start_PIN = 0 ; 
+             //  __delay_ms(20) ;
+             //  En_598_PIN = 0 ; 
+            
+               __delay_ms(120);
+                 Start_PIN = 0 ; 
                __delay_ms(500);
 }
 void main(void) {
@@ -191,13 +208,13 @@ void main(void) {
 
               Flag_50h = 0 ;
               count_7ms = 0 ;
-     // __delay_ms(1000);
+      __delay_ms(500);
      Start_Power();
      Flag_V_Reg =  1 ;
     while(1) {
       
         // ???? ???? ??? GP4
-        TOGGLE_PIN = ~TOGGLE_PIN; 
+      //  TOGGLE_PIN = ~TOGGLE_PIN; 
         __delay_ms(100); // ????? 1 ?????
         
         
@@ -230,6 +247,7 @@ void main(void) {
 //                            }  
              
              Flag_50h = 1 ;
+             TOGGLE_PIN = 1 ;
                
                         timer_val = 0 ;
                    
@@ -238,6 +256,9 @@ void main(void) {
        else 
        {
             Flag_50h = 0 ;
+              __delay_ms(1000) ;
+            End_Power();
+              TOGGLE_PIN = 0 ;
             En_598_PIN = 1 ; 
        }
         
@@ -259,6 +280,7 @@ void main(void) {
                                  if(V_Fan_PIN == 1 )
                                      {
                                      
+                                     
                                         En_598_PIN = 1 ; 
                                        // break ;
                                       }
@@ -266,6 +288,8 @@ void main(void) {
                             }
            else 
            {
+                  __delay_ms(1000) ;
+                    End_Power();
              En_598_PIN = 1 ;  
            }
          
