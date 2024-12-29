@@ -8,6 +8,7 @@
     main.c
 
   Summary:
+  Summary:
     This is the main file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
 
   Description:
@@ -49,6 +50,8 @@
    unsigned int adc_value = 0;
 unsigned int display_index = 0;
 unsigned int DP_IND = 0; 
+
+uint16_t duty_cycle = 0;
 
 void ISR_Mado(void);
  void USART_Write_Text(char* text) { 
@@ -144,13 +147,31 @@ void main(void)
         sprintf(buffer, "ADC: %u\r\n", ADC); // ??????? ?? sprintf ???? ???? ???? ???? 
         USART_Write_Text(buffer);
         adc_value = (ADC / 12) ; 
+        
+        
+        duty_cycle = adc_value;
+                
+        
         if(adc_value > 5 )
         {
-            PWM3_LoadDutyValue(adc_value * 8  );
+            
+                if (PORTCbits.RC7 == 1) { 
+                  PWM3_LoadDutyValue( ((78 - adc_value) * 8)  );
+                 }
+                  else 
+                 {
+                 PWM3_LoadDutyValue( (adc_value * 8) );
+                 }
         }
         else 
-        {
-              PWM3_LoadDutyValue(5 );
+        { 
+            if (PORTCbits.RC7 == 1) { 
+                  PWM3_LoadDutyValue((78 * 8 ) - ( 5 * 8) );
+              }
+             else
+              {
+                PWM3_LoadDutyValue( 5 ); 
+              }
         }
       
          //EUSART_Write(buffer);
