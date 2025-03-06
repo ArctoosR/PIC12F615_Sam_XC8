@@ -42,6 +42,14 @@
     SOFTWARE.
 */
 
+//*******************************************************Data_Mado*************
+//   eDIT sHODE iN 1403_12_18
+//PWM FOR (0 - 50)% ==>  PWM3_LoadDutyValue(0 _ 320);
+//
+//
+//
+//
+//*****************************************************************************
 #include "mcc_generated_files/mcc.h"
 #include <stdio.h> // ???? ??????? ?? sprintf
  uint16_t  ADC = 0 ;
@@ -53,6 +61,9 @@ unsigned int DP_IND = 0;
 
 uint16_t duty_cycle = 0;
 
+uint16_t Pwm_Mado=0;
+uint16_t Val_Revers = 0;
+uint16_t Val_Writh = 0;
 void ISR_Mado(void);
  void USART_Write_Text(char* text) { 
      while(*text) {
@@ -92,6 +103,27 @@ void ISR_Mado(void);
     }
 }
  
+ 
+ 
+ 
+ #define NUM_SAMPLES 2
+
+uint16_t adc_samples[NUM_SAMPLES];
+uint16_t adc_index = 0;
+
+void addSample(uint16_t sample) {
+    adc_samples[adc_index] = sample;
+    adc_index = (adc_index + 1) % NUM_SAMPLES;
+}
+
+uint16_t getAverage() {
+    uint32_t sum = 0;
+    for (uint16_t i = 0; i < NUM_SAMPLES; i++) {
+        sum += adc_samples[i];
+    }
+    return (uint16_t)(sum / NUM_SAMPLES);
+    
+}
 void DELAY_milliseconds(uint16_t);
 
 /*
@@ -130,10 +162,28 @@ void main(void)
    
     ADC_SelectChannel(channel_AN3);
     ADC_StartConversion();
-  
+  ADC_SelectChannel(channel_AN3);
+    
+    // Initialize ADC samples array
+    for (uint16_t i = 0; i < NUM_SAMPLES; i++) {
+        adc_samples[i] = 0;
+    }
             
     while (1)
     {
+        
+     /*   
+        while(1)
+        {
+           Pwm_Mado =  (Pwm_Mado + 1) ;
+            PWM3_LoadDutyValue(Pwm_Mado * 8 );
+            if(Pwm_Mado > 40 )
+            {
+                Pwm_Mado =0;
+            }
+             DELAY_milliseconds(500);
+        }
+        */
         // LATAbits.LATA2 = ~LATAbits.LATA2 ;
        // LATBbits.LATB6 = !LATBbits.LATB6;
           //LATBbits.LATB5 = !LATBbits.LATB5;
@@ -143,37 +193,74 @@ void main(void)
         ;
     }
         ADC = ADC_GetConversion(channel_AN3);
+        
+        addSample(ADC);
+        uint16_t average_adc_value = getAverage();
+        
+          if (PORTCbits.RC7 == 0) 
+          { 
+              
+              Val_Writh = average_adc_value /2 ;
+               if(Val_Writh < 4 && Val_Writh > 0 )  
+               {Val_Writh = 0;  }    
+         PWM3_LoadDutyValue(Val_Writh);
+          }
+          else
+          {
+              Val_Revers = 450 -(average_adc_value /2) ;
+             PWM3_LoadDutyValue(Val_Revers); 
+          }
+        adc_value = (average_adc_value  / 10)  ; 
+        
+        
+        
+        
         char buffer[10]; 
-        sprintf(buffer, "ADC: %u\r\n", ADC); // ??????? ?? sprintf ???? ???? ???? ???? 
+        sprintf(buffer, "ADC: %u\r\n", average_adc_value ); // ??????? ?? sprintf ???? ???? ???? ???? 
         USART_Write_Text(buffer);
-        adc_value = (ADC / 12) ; 
+        
         
         
         duty_cycle = adc_value;
-                
-        
+             
+//        PWM3_LoadDutyValue( 78 * 8) ;
+//        if(adc_value >0 && adc_value <=7 ) {PWM3_LoadDutyValue( 78 * 8) ;}
+//        if(adc_value >7 && adc_value <=14 ) {PWM3_LoadDutyValue( 77 * 8) ;}
+//        if(adc_value >14 && adc_value <=21 ) {PWM3_LoadDutyValue( 76 * 8) ;}
+//        if(adc_value >21 && adc_value <=28 ) {PWM3_LoadDutyValue( 75 * 8) ;}
+//        if(adc_value >28 && adc_value <=35 ) {PWM3_LoadDutyValue( 74 * 8) ;}
+//        if(adc_value >35 && adc_value <=42 ) {PWM3_LoadDutyValue( 73 * 8) ;}
+//        if(adc_value >42 && adc_value <=49 ) {PWM3_LoadDutyValue( 72 * 8) ;}
+//        if(adc_value >49 && adc_value <=56 ) {PWM3_LoadDutyValue( 68 * 8) ;}
+//        if(adc_value >56 && adc_value <=63 ) {PWM3_LoadDutyValue( 65 * 8) ;}
+//        if(adc_value >63 && adc_value <=73 ) {PWM3_LoadDutyValue( 60 * 8) ;}
+//      
+//        if(adc_value >73 && adc_value <=90 ) {PWM3_LoadDutyValue( 60 * 8) ;}
+       
+       
         if(adc_value > 5 )
         {
             
                 if (PORTCbits.RC7 == 1) { 
-                  PWM3_LoadDutyValue( ((78 - adc_value) * 8)  );
+                //  PWM3_LoadDutyValue( (((78 - (adc_value ))) * 8) );
                  }
                   else 
                  {
-                 PWM3_LoadDutyValue( (adc_value * 8) );
+                // PWM3_LoadDutyValue( ((adc_value ) * 8)  );
                  }
         }
         else 
         { 
             if (PORTCbits.RC7 == 1) { 
-                  PWM3_LoadDutyValue((78 * 8 ) - ( 5 * 8) );
+                //  PWM3_LoadDutyValue((78 * 8 ) - ( 5 * 8) );
               }
              else
               {
-                PWM3_LoadDutyValue( 5 ); 
+               // PWM3_LoadDutyValue( 5 ); 
               }
         }
       
+        
          //EUSART_Write(buffer);
        // EUSART_Write(0x0A);
         DELAY_milliseconds(500);
