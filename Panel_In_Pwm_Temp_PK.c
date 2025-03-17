@@ -340,10 +340,10 @@ void main(void)
       __delay_ms(500);
  displayedInt = frequency ;
       
-            if (displayedInt >= 287) { // 85 DARAGE
+            if (displayedInt >= 270) { // 77 DARAGE
             LATCbits.LATC0 = 1;  // ???? ???? ??
             LATCbits.LATC5 = 1;  // ???? ???? ??
-        } else if (displayedInt <= 270) { // 80 DARAGE
+        } else if (displayedInt <= 255) { // 71 DARAGE
             LATCbits.LATC0 = 0;  // ????? ???? ??
             LATCbits.LATC5 = 0;  // ????? ???? ??
        
